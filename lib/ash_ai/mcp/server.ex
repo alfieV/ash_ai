@@ -9,6 +9,14 @@ defmodule AshAi.Mcp.Server do
   This module handles HTTP requests and responses according to the MCP specification,
   supporting both synchronous and streaming communication patterns.
   It also handles the core JSON-RPC message processing for the protocol.
+
+  ## Tool resolution
+
+  Tools are resolved from multiple sources with the following precedence:
+
+  1. Router options `tools:` (compile-time, set via `forward` in your router)
+  2. Connection private `AshAi.PlugHelpers.set_tools/2` (request-time, set via a plug)
+  3. All tools from the configured domains (default when neither is set)
   """
 
   alias AshAi.Tool
@@ -29,6 +37,16 @@ defmodule AshAi.Mcp.Server do
         context: Ash.PlugHelpers.get_context(conn) || %{}
       ]
       |> Keyword.merge(opts)
+
+    opts =
+      if Keyword.has_key?(opts, :tools) do
+        opts
+      else
+        case AshAi.PlugHelpers.get_tools(conn) do
+          nil -> opts
+          tools -> Keyword.put(opts, :tools, tools)
+        end
+      end
 
     case process_request(body, session_id, opts) do
       {:initialize_response, response, new_session_id} ->

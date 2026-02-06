@@ -14,6 +14,10 @@ if Code.ensure_loaded?(Plug) do
     ```elixir
     forward "/mcp", AshAi.Mcp.Router, tools: [:tool1, :tool2], otp_app: :my_app
     ```
+
+    Tools can also be set per-request using `AshAi.PlugHelpers.set_tools/2` in a plug
+    pipeline, instead of the static `tools:` option. When both are set, the router
+    option takes precedence. See `AshAi.PlugHelpers` for details.
     """
 
     use Plug.Router, copy_opts_to_assign: :router_opts

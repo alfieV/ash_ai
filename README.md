@@ -120,6 +120,42 @@ scope "/mcp" do
 end
 ```
 
+##### Dynamic tool filtering with plugs
+
+Instead of a static `tools:` list, you can set tools per-request using `AshAi.PlugHelpers.set_tools/2`
+in a plug pipeline. that way, different users, agents or API endpoints can expose different tools.
+
+```elixir
+# A plug that sets tools based on request context
+defmodule MyApp.LoadAgentTools do
+  @behaviour Plug
+
+  def init(opts), do: opts
+
+  def call(conn, _opts) do
+    tools = resolve_tools_for(conn)
+    AshAi.PlugHelpers.set_tools(conn, tools)
+  end
+
+  defp resolve_tools_for(conn) do
+    # e.g. load from database, derive from user role, etc.
+    [:list_posts, :create_post]
+  end
+end
+
+# In your router
+scope "/mcp" do
+  pipe_through [:mcp, MyApp.LoadAgentTools]
+
+  forward "/", AshAi.Mcp.Router,
+    protocol_version_statement: "2024-11-05",
+    otp_app: :my_app
+end
+```
+
+When `tools:` is set in the router options, it takes precedence over conn-level tools.
+When neither is set, all tools are exposed.
+
 ## `mix ash_ai.gen.chat`
 
 This is a new and experimental tool to generate a chat feature for your Ash & Phoenix application. It is backed by `ash_oban` and `ash_postgres`, using `pub_sub` to stream messages to the client. This is primarily a tool to get started with chat features and is by no means intended to handle every case you can come up with.
